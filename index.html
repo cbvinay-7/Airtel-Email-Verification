@@ -100,21 +100,8 @@
     <label for="email-input">Email address</label>
     <input type="email" id="email-input" placeholder="you@example.com" autocomplete="email" />
     <div class="field-error" id="email-error"></div>
-    <button class="btn" onclick="handleProceed()">Proceed →</button>
-  </div>
-
-  <!-- STEP 2: Allow Location -->
-  <div class="step" id="step-location">
-    <div class="centered">
-      <div class="location-icon">
-        <svg viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5S10.62 6.5 12 6.5s2.5 1.12 2.5 2.5S13.38 11.5 12 11.5z"/></svg>
-      </div>
-      <h1>Allow location access</h1>
-      <p class="subtitle" style="margin-bottom:32px;">We need your device location to complete verification. Click below and allow access when your browser asks.</p>
-      <button class="btn" id="location-btn" onclick="requestLocation()">Allow location access</button>
-      <button class="btn btn-secondary" onclick="goBack()">← Go back</button>
-      <div id="location-status"></div>
-    </div>
+    <button class="btn" id="proceed-btn" onclick="handleProceed()">Proceed →</button>
+    <div id="location-status"></div>
   </div>
 
   <!-- STEP 3: Success -->
@@ -161,17 +148,11 @@
     }
     errEl.textContent = '';
     capturedEmail = email;
-    showStep('step-location');
-  }
-
-  function goBack() {
-    showStep('step-email');
-    document.getElementById('location-status').innerHTML = '';
-    document.getElementById('location-btn').disabled = false;
+    requestLocation();
   }
 
   function requestLocation() {
-    const btn = document.getElementById('location-btn');
+    const btn = document.getElementById('proceed-btn');
     const statusEl = document.getElementById('location-status');
 
     if (!navigator.geolocation) {
